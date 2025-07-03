@@ -1,0 +1,16 @@
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.Form1.resources
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.csproj.GenerateResource.cache
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.GeneratedMSBuildEditorConfig.editorconfig
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.AssemblyInfoInputs.cache
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.AssemblyInfo.cs
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.csproj.CoreCompileInputs.cache
+D:\Users\Administrator\source\repos\changeWeChat\bin\Debug\net8.0-windows\changeWeChat.exe
+D:\Users\Administrator\source\repos\changeWeChat\bin\Debug\net8.0-windows\changeWeChat.deps.json
+D:\Users\Administrator\source\repos\changeWeChat\bin\Debug\net8.0-windows\changeWeChat.runtimeconfig.json
+D:\Users\Administrator\source\repos\changeWeChat\bin\Debug\net8.0-windows\changeWeChat.dll
+D:\Users\Administrator\source\repos\changeWeChat\bin\Debug\net8.0-windows\changeWeChat.pdb
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.dll
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\refint\changeWeChat.dll
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.pdb
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\changeWeChat.genruntimeconfig.cache
+D:\Users\Administrator\source\repos\changeWeChat\obj\Debug\net8.0-windows\ref\changeWeChat.dll

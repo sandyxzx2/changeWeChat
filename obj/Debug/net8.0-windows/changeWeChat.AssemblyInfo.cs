@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("changeWeChat")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1bed2e521a8a4c273abbbc0301c877e0f8ceb785")]
 [assembly: System.Reflection.AssemblyProductAttribute("changeWeChat")]
 [assembly: System.Reflection.AssemblyTitleAttribute("changeWeChat")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

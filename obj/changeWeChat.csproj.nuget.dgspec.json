@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Users\\Administrator\\source\\repos\\changeWeChat\\changeWeChat.csproj": {}
+    "D:\\net\\changeWeChat\\changeWeChat.csproj": {}
   },
   "projects": {
-    "D:\\Users\\Administrator\\source\\repos\\changeWeChat\\changeWeChat.csproj": {
+    "D:\\net\\changeWeChat\\changeWeChat.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Users\\Administrator\\source\\repos\\changeWeChat\\changeWeChat.csproj",
+        "projectUniqueName": "D:\\net\\changeWeChat\\changeWeChat.csproj",
         "projectName": "changeWeChat",
-        "projectPath": "D:\\Users\\Administrator\\source\\repos\\changeWeChat\\changeWeChat.csproj",
+        "projectPath": "D:\\net\\changeWeChat\\changeWeChat.csproj",
         "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-        "outputPath": "D:\\Users\\Administrator\\source\\repos\\changeWeChat\\obj\\",
+        "outputPath": "D:\\net\\changeWeChat\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "d:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

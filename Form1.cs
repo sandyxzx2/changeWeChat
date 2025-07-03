@@ -36,12 +36,36 @@ namespace changeWeChat
         [DllImport("user32.dll")]
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+        [DllImport("user32.dll")]
+        public static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         public struct RECT { public int Left, Top, Right, Bottom; }
 
+        // 常量定义
+        private const int WS_EX_LAYERED = 0x80000;
+        private const int WS_EX_TRANSPARENT = 0x20;
+        private const int WS_EX_TOPMOST = 0x8;
+        private const int LWA_ALPHA = 0x2;
+        private const int HOTKEY_ID = 9000;
+        private const int HOTKEY_ID_CHAT = 9001; // 新增：专门控制聊天区域透明度的热键
+        private const uint MOD_CONTROL = 0x0002;
+        private const uint MOD_SHIFT = 0x0004;
+        private const uint MOD_ALT = 0x0001;
+        private const uint VK_W = 0x57;
+        private const uint VK_C = 0x43; // C键用于控制聊天区域透明度
+
         System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
         IntPtr hWeChat = IntPtr.Zero;
+        private bool isTransparent = true; // 透明模式状态
+        private int chatAreaAlpha = 60; // 聊天区域透明度 (0-255)
 
         public Form1()
         {
@@ -53,27 +77,29 @@ namespace changeWeChat
             this.StartPosition = FormStartPosition.Manual;
             this.BackColor = Color.White;
 
-            // 确保窗口始终显示
-            this.Visible = true;
-
             // 定时器设置
-            timer.Interval = 1000; // 改为1秒检查一次
+            timer.Interval = 500; // 500ms检查一次
             timer.Tick += (s, e) => SyncWithWeChat();
             timer.Start();
 
             // 启动时主动查找微信窗口
             FindWeChatWindow();
 
+            // 注册热键 Ctrl+Shift+W 和 Ctrl+Alt+C
+            RegisterHotKey(this.Handle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT, VK_W);
+            RegisterHotKey(this.Handle, HOTKEY_ID_CHAT, MOD_CONTROL | MOD_ALT, VK_C);
+
             if (hWeChat == IntPtr.Zero)
             {
-                MessageBox.Show("未找到微信窗口，请先启动微信PC版！\n\n程序将继续运行，定时查找微信窗口。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("未找到微信窗口，请先启动微信PC版！\n\n程序将继续运行，定时查找微信窗口。\n\n" +
+                    "按 Ctrl+Shift+W 切换透明模式\n按 Ctrl+Alt+C 调整聊天区域透明度", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 // 居中显示遮罩层，方便查看效果
                 this.SetBounds((Screen.PrimaryScreen.WorkingArea.Width - 800) / 2,
                               (Screen.PrimaryScreen.WorkingArea.Height - 450) / 2, 800, 450);
             }
 
-            // 确保窗口显示在最前面
-            this.BringToFront();
+            // 设置透明模式
+            SetTransparentMode(isTransparent);
         }
 
         // 改进的微信窗口查找方法
@@ -105,6 +131,12 @@ namespace changeWeChat
             {
                 hWeChat = FindWeChatByProcess();
             }
+
+            // 验证找到的窗口是否有效
+            if (hWeChat != IntPtr.Zero && !IsWindow(hWeChat))
+            {
+                hWeChat = IntPtr.Zero;
+            }
         }
 
         // 通过进程名查找微信窗口
@@ -112,49 +144,45 @@ namespace changeWeChat
         {
             IntPtr weChatHwnd = IntPtr.Zero;
 
-            EnumWindows((hWnd, lParam) =>
+            try
             {
-                uint processId;
-                GetWindowThreadProcessId(hWnd, out processId);
-
-                try
+                Process[] processes = Process.GetProcessesByName("WeChat");
+                if (processes.Length == 0)
                 {
-                    Process process = Process.GetProcessById((int)processId);
-                    if (process.ProcessName.ToLower().Contains("wechat"))
+                    processes = Process.GetProcessesByName("wechat");
+                }
+
+                foreach (Process process in processes)
+                {
+                    if (process.MainWindowHandle != IntPtr.Zero)
                     {
                         // 获取窗口标题
                         System.Text.StringBuilder windowTitle = new System.Text.StringBuilder(256);
-                        GetWindowText(hWnd, windowTitle, 256);
+                        GetWindowText(process.MainWindowHandle, windowTitle, 256);
 
-                        // 获取窗口类名
-                        System.Text.StringBuilder className = new System.Text.StringBuilder(256);
-                        GetClassName(hWnd, className, 256);
+                        Console.WriteLine($"找到微信窗口：{windowTitle} - Handle: {process.MainWindowHandle}");
 
-                        Console.WriteLine($"找到微信相关窗口：{windowTitle} - {className}");
-
-                        // 检查是否是主窗口（通常主窗口标题包含"微信"或者有一定的大小）
+                        // 检查窗口大小
                         RECT rect;
-                        if (GetWindowRect(hWnd, out rect))
+                        if (GetWindowRect(process.MainWindowHandle, out rect))
                         {
                             int width = rect.Right - rect.Left;
                             int height = rect.Bottom - rect.Top;
 
                             if (width > 300 && height > 200) // 主窗口通常比较大
                             {
-                                weChatHwnd = hWnd;
+                                weChatHwnd = process.MainWindowHandle;
                                 Console.WriteLine($"选择此窗口作为微信主窗口，大小：{width}x{height}");
-                                return false; // 停止枚举
+                                break;
                             }
                         }
                     }
                 }
-                catch
-                {
-                    // 忽略无法访问的进程
-                }
-
-                return true; // 继续枚举
-            }, IntPtr.Zero);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"查找微信进程时出错：{ex.Message}");
+            }
 
             return weChatHwnd;
         }
@@ -163,23 +191,37 @@ namespace changeWeChat
         {
             get
             {
-                const int WS_EX_LAYERED = 0x80000;
-                const int WS_EX_TOPMOST = 0x8;
-                // 暂时不使用WS_EX_TRANSPARENT，先确保窗口能正常显示
                 CreateParams cp = base.CreateParams;
                 cp.ExStyle |= WS_EX_LAYERED | WS_EX_TOPMOST;
+                if (isTransparent)
+                {
+                    cp.ExStyle |= WS_EX_TRANSPARENT;
+                }
                 return cp;
             }
         }
 
+        private void SetTransparentMode(bool transparent)
+        {
+            isTransparent = transparent;
+
+            // 重新创建窗口以应用新的扩展样式
+            this.RecreateHandle();
+
+            // 设置窗口透明度
+            SetLayeredWindowAttributes(this.Handle, 0, transparent ? (byte)200 : (byte)255, LWA_ALPHA);
+
+            this.Invalidate(); // 刷新界面
+        }
+
         void SyncWithWeChat()
         {
-            if (hWeChat == IntPtr.Zero)
+            if (hWeChat == IntPtr.Zero || !IsWindow(hWeChat))
             {
                 FindWeChatWindow();
             }
 
-            if (hWeChat != IntPtr.Zero)
+            if (hWeChat != IntPtr.Zero && IsWindow(hWeChat) && IsWindowVisible(hWeChat))
             {
                 RECT rect;
                 if (GetWindowRect(hWeChat, out rect))
@@ -189,7 +231,14 @@ namespace changeWeChat
 
                     if (width > 0 && height > 0)
                     {
-                        this.SetBounds(rect.Left, rect.Top, width, height);
+                        // 同步位置和大小
+                        SetWindowPos(this.Handle, new IntPtr(-1), rect.Left, rect.Top, width, height, 0x0010);
+
+                        // 如果窗口大小变化，重新绘制
+                        if (this.Width != width || this.Height != height)
+                        {
+                            this.Invalidate();
+                        }
                     }
                 }
             }
@@ -257,13 +306,50 @@ namespace changeWeChat
                         e.Graphics.DrawString("王五：我这边也差不多了", contentFont, Brushes.Black, new PointF(chatX, 120));
                     }
 
-                    // 添加一个明显的提示
-                    using (Font tipFont = new Font("微软雅黑", 14, FontStyle.Bold))
+                    // 显示当前状态
+                    string statusText = isTransparent ? "透明模式：开启" : "透明模式：关闭";
+                    using (Font statusFont = new Font("微软雅黑", 12, FontStyle.Bold))
                     {
-                        string tip = "遮罩效果已启用 - 这是模拟的招呼界面";
-                        SizeF tipSize = e.Graphics.MeasureString(tip, tipFont);
-                        e.Graphics.DrawString(tip, tipFont, Brushes.Red,
-                            new PointF((this.Width - tipSize.Width) / 2, this.Height - 60));
+                        e.Graphics.DrawString(statusText, statusFont,
+                            isTransparent ? Brushes.Green : Brushes.Red,
+                            new PointF(this.Width - 150, 10));
+                    }
+
+                    // 热键提示
+                    using (Font tipFont = new Font("微软雅黑", 10))
+                    {
+                        e.Graphics.DrawString("按 Ctrl+Shift+W 切换透明模式", tipFont, Brushes.Blue,
+                            new PointF(10, this.Height - 40));
+                    }
+                }
+
+                // 在透明模式下，为聊天内容区域添加半透明遮罩
+                if (isTransparent)
+                {
+                    // 计算聊天内容区域（类似微信右侧聊天区域）
+                    int chatAreaX = this.Width / 4;
+                    int chatAreaY = 50;
+                    int chatAreaWidth = this.Width * 3 / 4;
+                    int chatAreaHeight = this.Height - 50;
+
+                    // 绘制半透明遮罩，让下面的微信内容更清晰
+                    using (Brush maskBrush = new SolidBrush(Color.FromArgb(60, 245, 245, 245)))
+                    {
+                        e.Graphics.FillRectangle(maskBrush, chatAreaX, chatAreaY, chatAreaWidth, chatAreaHeight);
+                    }
+
+                    // 在遮罩区域添加一个边框提示
+                    using (Pen borderPen = new Pen(Color.FromArgb(100, 64, 158, 255), 2))
+                    {
+                        e.Graphics.DrawRectangle(borderPen, chatAreaX, chatAreaY, chatAreaWidth - 1, chatAreaHeight - 1);
+                    }
+                    // 微信窗口状态信息
+                    string weChatStatus1 = hWeChat == IntPtr.Zero ? "未找到微信窗口" : "已找到微信窗口";
+                    using (Font statusFont = new Font("微软雅黑", 10))
+                    {
+                        e.Graphics.DrawString(weChatStatus1, statusFont,
+                            hWeChat == IntPtr.Zero ? Brushes.Red : Brushes.Green,
+                            new PointF(10, this.Height - 25));
                     }
                 }
             }
@@ -273,39 +359,83 @@ namespace changeWeChat
                 e.Graphics.DrawString($"显示异常：{ex.Message}", new Font("微软雅黑", 12), Brushes.Red, new PointF(10, 10));
             }
 
-            // 状态信息
-            string statusText = hWeChat == IntPtr.Zero ? "未找到微信窗口" : "已找到微信窗口";
+            // 微信窗口状态信息
+            string weChatStatus = hWeChat == IntPtr.Zero ? "未找到微信窗口" : "已找到微信窗口";
             using (Font statusFont = new Font("微软雅黑", 10))
             {
-                e.Graphics.DrawString(statusText, statusFont,
+                e.Graphics.DrawString(weChatStatus, statusFont,
                     hWeChat == IntPtr.Zero ? Brushes.Red : Brushes.Green,
-                    new PointF(10, this.Height - 25));
+                    new PointF(10, this.Height - 20));
             }
         }
 
         protected override void WndProc(ref Message m)
         {
-            // 移除热键处理，直接调用基类方法
+            const int WM_HOTKEY = 0x0312;
+
+            if (m.Msg == WM_HOTKEY)
+            {
+                if (m.WParam.ToInt32() == HOTKEY_ID)
+                {
+                    // 切换透明模式
+                    SetTransparentMode(!isTransparent);
+                    return;
+                }
+                else if (m.WParam.ToInt32() == HOTKEY_ID_CHAT)
+                {
+                    // 调整聊天区域透明度
+                    AdjustChatAreaAlpha();
+                    return;
+                }
+            }
+
             base.WndProc(ref m);
+        }
+
+        private void AdjustChatAreaAlpha()
+        {
+            // 循环调整透明度：30 -> 60 -> 90 -> 120 -> 150 -> 30
+            chatAreaAlpha += 30;
+            if (chatAreaAlpha > 150)
+            {
+                chatAreaAlpha = 30;
+            }
+
+            // 重新绘制
+            this.Invalidate();
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             timer.Stop();
+            UnregisterHotKey(this.Handle, HOTKEY_ID);
+            UnregisterHotKey(this.Handle, HOTKEY_ID_CHAT);
             base.OnFormClosed(e);
         }
 
-        // 添加右键菜单支持
+        // 添加右键菜单支持（仅在非透明模式下可用）
         protected override void OnMouseClick(MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
+            if (!isTransparent && e.Button == MouseButtons.Right)
             {
                 ContextMenuStrip menu = new ContextMenuStrip();
                 menu.Items.Add("重新查找微信", null, (s, args) => FindWeChatWindow());
+                menu.Items.Add($"{(isTransparent ? "关闭" : "开启")}透明模式", null,
+                    (s, args) => SetTransparentMode(!isTransparent));
+                menu.Items.Add($"调整聊天区域透明度 (当前: {chatAreaAlpha})", null,
+                    (s, args) => AdjustChatAreaAlpha());
                 menu.Items.Add("退出程序", null, (s, args) => this.Close());
                 menu.Show(this, e.Location);
             }
             base.OnMouseClick(e);
+        }
+
+        // 重写OnShown确保窗口正确显示
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            this.BringToFront();
+            this.Focus();
         }
     }
 }

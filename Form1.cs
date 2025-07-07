@@ -223,6 +223,7 @@ namespace changeWeChat
 
             if (hWeChat != IntPtr.Zero && IsWindow(hWeChat) && IsWindowVisible(hWeChat))
             {
+                this.Show();
                 RECT rect;
                 if (GetWindowRect(hWeChat, out rect))
                 {
@@ -245,8 +246,9 @@ namespace changeWeChat
             else
             {
                 // 没找到微信时，遮罩层居中显示
-                this.SetBounds((Screen.PrimaryScreen.WorkingArea.Width - 800) / 2,
-                              (Screen.PrimaryScreen.WorkingArea.Height - 450) / 2, 800, 450);
+                //this.SetBounds((Screen.PrimaryScreen.WorkingArea.Width - 800) / 2,
+                //              (Screen.PrimaryScreen.WorkingArea.Height - 450) / 2, 800, 450);
+                this.Hide();
             }
         }
 
